@@ -8,6 +8,22 @@
 .alpackages/
 #Snapshots folder
 .snapshots/
+.appsettings.json
+.appsettings
+# Visual Studio
+.vs/
+*.vscode/
+
+# Build
+bin/
+obj/
+
+# User-specific
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
 #Testing Output folder
 .output/
 #Extension App-file
