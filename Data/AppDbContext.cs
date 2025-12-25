@@ -12,6 +12,8 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<ExamTask> ExamTasks { get; set; }
+    public DbSet<GeneratedTask> GeneratedTasks { get; set; }
+    public DbSet<UserAnswer> UserAnswers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

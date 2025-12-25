@@ -7,9 +7,9 @@ public class TaskGenerationRequest
     public string? TaskTopic { get; set; }
 
     [Required]
-    public string DifficultyLevel { get; set; } = "podstawowy"; // podstawowy/rozszerzony
+    public string DifficultyLevel { get; set; } = "podstawowy";
 
-    public string? PhysicsSubject { get; set; } // mechanika, elektryczność, optyka, etc.
+    public string? PhysicsSubject { get; set; }
 
     [Range(1, 10)]
     public int TaskCount { get; set; } = 1;
@@ -18,11 +18,12 @@ public class TaskGenerationRequest
 public class TaskGenerationResponse
 {
     public bool Success { get; set; }
-    public List<GeneratedTask> Tasks { get; set; } = new();
+    public List<GeneratedTaskItemDto> Tasks { get; set; } = new();  // ✅ ZMIEŃ NAZWĘ!
     public string? Message { get; set; }
 }
 
-public class GeneratedTask
+// ✅ ZMIEŃ NAZWĘ: GeneratedTaskDto → GeneratedTaskItemDto
+public class GeneratedTaskItemDto  // ← NOWA NAZWA!
 {
     public string Content { get; set; } = string.Empty;
     public List<string>? Answers { get; set; }

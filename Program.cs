@@ -9,6 +9,33 @@ using ExamCreateApp.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================
+// DEBUG - JWT CONFIGURATION CHECK
+// ============================================
+Console.WriteLine("\n====================================");
+Console.WriteLine("?? CHECKING JWT CONFIGURATION:");
+
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+var issuer = jwtSettings["Issuer"];
+var audience = jwtSettings["Audience"];
+
+Console.WriteLine($"?? SecretKey exists: {!string.IsNullOrEmpty(secretKey)}");
+Console.WriteLine($"?? SecretKey length: {secretKey?.Length ?? 0} chars");
+Console.WriteLine($"?? Issuer: '{issuer}'");
+Console.WriteLine($"?? Audience: '{audience}'");
+Console.WriteLine("====================================\n");
+
+if (string.IsNullOrEmpty(secretKey))
+{
+    throw new InvalidOperationException("? Brak SecretKey w appsettings.json");
+}
+
+if (secretKey.Length < 32)
+{
+    throw new InvalidOperationException($"? SecretKey jest za krótki ({secretKey.Length} chars). Wymagane minimum 32!");
+}
+
+// ============================================
 // 1. DATABASE - PostgreSQL + pgvector
 // ============================================
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -26,14 +53,15 @@ builder.Services.AddHttpClient<RAGService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<GeminiService>();
 builder.Services.AddScoped<RAGService>();
+// ? DODAJ:
+builder.Services.AddScoped<PdfImportService>();
+builder.Services.AddScoped<PdfExportService>();
 
 
 // ============================================
 // 3. JWT AUTHENTICATION - Tokeny
 // ============================================
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"]
-    ?? throw new InvalidOperationException("Brak SecretKey w appsettings.json");
+Console.WriteLine("?? Configuring JWT Authentication...");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -48,12 +76,63 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
+        ValidIssuer = issuer,
+        ValidAudience = audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
         ClockSkew = TimeSpan.Zero
     };
+
+    // ? DEBUGGING EVENTS - POKA¯E CO SIÊ DZIEJE!
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine("\n? JWT AUTHENTICATION FAILED!");
+            Console.WriteLine($"   Exception Type: {context.Exception.GetType().Name}");
+            Console.WriteLine($"   Message: {context.Exception.Message}");
+
+            if (context.Exception.InnerException != null)
+            {
+                Console.WriteLine($"   Inner Exception: {context.Exception.InnerException.Message}");
+            }
+
+            return Task.CompletedTask;
+        },
+
+        OnTokenValidated = context =>
+        {
+            var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var email = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            Console.WriteLine($"\n? JWT TOKEN VALIDATED!");
+            Console.WriteLine($"   User ID: {userId}");
+            Console.WriteLine($"   Email: {email}");
+
+            return Task.CompletedTask;
+        },
+
+        OnChallenge = context =>
+        {
+            Console.WriteLine("\n?? JWT CHALLENGE (Unauthorized)!");
+            Console.WriteLine($"   Error: {context.Error}");
+            Console.WriteLine($"   Error Description: {context.ErrorDescription}");
+
+            return Task.CompletedTask;
+        },
+
+        OnMessageReceived = context =>
+        {
+            var token = context.Token;
+            if (!string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine($"\n?? JWT Token received (length: {token.Length} chars)");
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
+
+Console.WriteLine("? JWT Authentication configured\n");
 
 builder.Services.AddAuthorization();
 
@@ -75,7 +154,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API do generowania zadañ maturalnych z fizyki"
     });
 
-    // Konfiguracja JWT w Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using Bearer scheme. Example: \"Bearer {token}\"",
@@ -143,11 +221,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll");          // CORS - przed UseRouting
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
-app.UseAuthentication();          // Sprawdza JWT token
-app.UseAuthorization();           // Sprawdza uprawnienia (role)
+app.UseAuthentication();  // WA¯NE: Przed UseAuthorization!
+app.UseAuthorization();
 app.MapControllers();
 
 Console.WriteLine("?? Aplikacja uruchomiona!");
+Console.WriteLine("?? Swagger: https://localhost:7013/swagger\n");
+
 app.Run();

@@ -55,7 +55,8 @@ public class RAGService
 
         foreach (var task in similarTasks)
         {
-            sb.AppendLine($"[Source: {task.ExamSheetName}, Task {task.TaskNumber}, {task.Year}, {task.Level}]");
+            sb.AppendLine($"[Source: {task.ExamSheetName}, Task {task.TaskNumber}, Year: {task.Year ?? 2024}, Level: {task.Level}]");
+            //                                                                        ^^^^^ DODAJ "Year:"
             sb.AppendLine(task.Content);
             sb.AppendLine();
         }
