@@ -14,6 +14,10 @@ public class AppDbContext : DbContext
     public DbSet<ExamTask> ExamTasks { get; set; }
     public DbSet<GeneratedTask> GeneratedTasks { get; set; }
     public DbSet<UserAnswer> UserAnswers { get; set; }
+    public DbSet<Review> Reviews { get; set; }
+     public DbSet<MockExam> MockExams{ get; set; }
+    public DbSet<MockExamAnswer> MockExamAnswers { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -34,18 +34,29 @@ public class RAGService
         string? level = null,
         string? subject = null)
     {
-        // Temporary: return empty list until we implement full RAG
-        _logger.LogInformation($"Searching for similar tasks: {query}");
+        _logger.LogInformation($"🔍 RAG Search: query='{query}', level={level}, subject={subject}");
 
         var dbQuery = _dbContext.ExamTasks.AsQueryable();
 
+        // ✅ POPRAWKA 1: Filtruj tylko po level (ignoruj subject)
         if (!string.IsNullOrEmpty(level))
+        {
             dbQuery = dbQuery.Where(t => t.Level == level);
+        }
 
-        if (!string.IsNullOrEmpty(subject))
-            dbQuery = dbQuery.Where(t => t.Subject == subject);
+        // ✅ POPRAWKA 2: Subject ignorujemy - wszystkie zadania to "fizyka"
+        // W przyszłości można dodać semantic search po content
 
-        return await dbQuery.Take(limit).ToListAsync();
+        // ✅ POPRAWKA 3: Dodaj sortowanie (usunie warning o Skip/Take bez OrderBy)
+        var results = await dbQuery
+            .OrderByDescending(t => t.Year)
+            .ThenBy(t => t.Page)
+            .Take(limit)
+            .ToListAsync();
+
+        _logger.LogInformation($"📊 Found {results.Count} tasks");
+
+        return results;
     }
 
     public string BuildContextFromExamSheets(List<ExamTask> similarTasks)
@@ -55,8 +66,8 @@ public class RAGService
 
         foreach (var task in similarTasks)
         {
+            // ✅ POPRAWKA: Dodaj "Year:" żeby regex w GeminiService mógł wyciągnąć rok
             sb.AppendLine($"[Source: {task.ExamSheetName}, Task {task.TaskNumber}, Year: {task.Year ?? 2024}, Level: {task.Level}]");
-            //                                                                        ^^^^^ DODAJ "Year:"
             sb.AppendLine(task.Content);
             sb.AppendLine();
         }

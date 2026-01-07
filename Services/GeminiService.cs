@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-
 namespace ExamCreateApp.Services;
 
 public class GeminiService
@@ -28,7 +27,10 @@ public class GeminiService
 
     public async Task<string> GenerateExamTasks(TaskGenerationRequest request, string context)
     {
-        var prompt = BuildPrompt(request, context);
+        // ✅ ZMIANA: Wybierz prompt na podstawie typu zadania
+        var prompt = request.TaskType == "open"
+            ? BuildOpenTaskPrompt(request, context)
+            : BuildClosedTaskPrompt(request, context);
 
         var requestBody = new
         {
@@ -47,7 +49,7 @@ public class GeminiService
                 temperature = 0.7,
                 topK = 40,
                 topP = 0.95,
-                maxOutputTokens = 2048,  // ✅ Zwiększone dla dłuższych odpowiedzi
+                maxOutputTokens = 4096,
             }
         };
 
@@ -56,21 +58,17 @@ public class GeminiService
 
         try
         {
-            // ✅ POPRAWKA 1: URL BEZ klucza API
             var url = $"{GeminiApiBaseUrl}/models/{ModelName}:generateContent";
 
-            _logger.LogInformation($"🔵 Calling Gemini API: {ModelName}");
+            _logger.LogInformation($"🔵 Calling Gemini API: {ModelName} (TaskType: {request.TaskType})");
 
-            // ✅ POPRAWKA 2: Dodaj nagłówek x-goog-api-key
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)  // ← ZMIENIONE z "request" na "httpRequest"
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = content
             };
             httpRequest.Headers.Add("x-goog-api-key", _apiKey);
 
-            var response = await _httpClient.SendAsync(httpRequest);  // ← ZMIENIONE
-
-           
+            var response = await _httpClient.SendAsync(httpRequest);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -92,14 +90,14 @@ public class GeminiService
         }
     }
 
-    private string BuildPrompt(TaskGenerationRequest request, string context)
+    // ✅ ZADANIA ZAMKNIĘTE (A/B/C/D)
+    private string BuildClosedTaskPrompt(TaskGenerationRequest request, string context)
     {
         var taskCount = Math.Min(request.TaskCount, 3);
-
-        // ✅ Wyciągnij rok z kontekstu
         var yearMatch = Regex.Match(context, @"\b(20\d{2})\b");
         var exampleYear = yearMatch.Success ? yearMatch.Value : "2024";
-        var prompt = $@"Wygeneruj {taskCount} zadanie/zadania z fizyki jako JSON.
+
+        return $@"Wygeneruj {taskCount} zadanie/zadania z fizyki jako JSON.
 
 PARAMETRY:
 Poziom: {request.DifficultyLevel}
@@ -128,13 +126,60 @@ KLUCZOWE ZASADY:
 3. Kazde zadanie w osobnym obiekcie
 4. 4 odpowiedzi A,B,C,D
 5. W polu ""source"" OBOWIAZKOWO uzyj formatu: ""Matura {exampleYear} CKE""
-6. Jesli w kontekscie jest inny rok niz {exampleYear}, uzyj tego roku!
-7. Zamknij wszystkie nawiasy }}]}}
-8. Zwroc TYLKO JSON bez zadnych dodatkowych tekstow, bez ``` i bez preamble
+6. Zamknij wszystkie nawiasy }}]}}
+7. Zwroc TYLKO JSON bez zadnych dodatkowych tekstow, bez ``` i bez preamble
 
 Wygeneruj teraz JSON:";
+    }
 
-        return prompt;
+    // ✅ NOWE - ZADANIA OTWARTE (obliczeniowe)
+    private string BuildOpenTaskPrompt(TaskGenerationRequest request, string context)
+    {
+        var taskCount = Math.Min(request.TaskCount, 3);
+        var yearMatch = Regex.Match(context, @"\b(20\d{2})\b");
+        var exampleYear = yearMatch.Success ? yearMatch.Value : "2024";
+
+        return $@"Wygeneruj {taskCount} OTWARTE zadanie/zadania z fizyki jako JSON.
+
+PARAMETRY:
+Poziom: {request.DifficultyLevel}
+Dzial: {request.PhysicsSubject ?? "mechanika"}
+Temat: {request.TaskTopic ?? "podstawy fizyki"}
+
+KONTEKST - Przyklady z prawdziwych egzaminow:
+{context}
+
+PRZYKLAD JSON (zadanie OTWARTE - obliczeniowe):
+{{
+  ""tasks"": [
+    {{
+      ""content"": ""Samochod porusza sie ruchem jednostajnym prostoliniowym z predkoscia 72 km/h. Oblicz droge przebyta przez samochod w ciagu 15 minut. Wynik podaj w metrach i przedstaw obliczenia."",
+      ""answers"": null,
+      ""correctAnswer"": ""18000 m"",
+      ""solution"": ""Dane: v = 72 km/h = 20 m/s, t = 15 min = 900 s. Wzor: s = v * t. Obliczenia: s = 20 m/s * 900 s = 18000 m. Odpowiedz: 18000 m"",
+      ""source"": ""Matura {exampleYear} CKE"",
+      ""pointsAvailable"": 2
+    }}
+  ]
+}}
+
+KLUCZOWE ZASADY:
+1. Zadanie OTWARTE - wymaga obliczen i podania wyniku liczbowego
+2. ""answers"" ZAWSZE ustawione na null (nie ma opcji A/B/C/D)
+3. ""correctAnswer"" to poprawny wynik liczbowy z jednostka (np. ""18000 m"", ""5 m/s"", ""2.5 s"")
+4. ""solution"" zawiera:
+   - Dane: (co jest dane w zadaniu)
+   - Wzor: (jaki wzor uzywamy)
+   - Obliczenia: (krok po kroku)
+   - Odpowiedz: (wynik koncowy)
+5. ""pointsAvailable"" - ile punktow warte jest zadanie (1-3, w zaleznosci od trudnosci)
+6. Bez polskich znakow (a,c,e,l,n,o,s,z zamiast ą,ć,ę,ł,ń,ó,ś,ź)
+7. Zadania powinny wymagac obliczen numerycznych (nie pytania teoretyczne)
+8. W polu ""source"" uzyj formatu: ""Matura {exampleYear} CKE""
+9. Zamknij wszystkie nawiasy }}]}}
+10. Zwroc TYLKO JSON bez zadnych dodatkowych tekstow, bez ``` i bez preamble
+
+Wygeneruj teraz JSON:";
     }
 
     private string ParseResponse(string responseJson)
@@ -153,7 +198,6 @@ Wygeneruj teraz JSON:";
 
             var firstCandidate = candidates[0];
 
-            // ✅ Sprawdź czy content ma property "parts"
             if (!firstCandidate.GetProperty("content").TryGetProperty("parts", out var parts))
             {
                 _logger.LogWarning("⚠️ No 'parts' in content (thinking mode?)");
@@ -162,7 +206,37 @@ Wygeneruj teraz JSON:";
 
             var text = parts[0].GetProperty("text").GetString();
 
-            _logger.LogInformation($"📤 Generated text: {text?.Substring(0, Math.Min(200, text?.Length ?? 0))}...");
+            // ✅ DODAJ: Sprawdź czy JSON jest kompletny
+            if (!string.IsNullOrEmpty(text))
+            {
+                text = text.Trim();
+
+                // Usuń markdown backticks jeśli są
+                if (text.StartsWith("```json"))
+                {
+                    text = text.Replace("```json", "").Replace("```", "").Trim();
+                }
+
+                // ✅ Sprawdź czy JSON się zamyka
+                if (!text.EndsWith("}"))
+                {
+                    _logger.LogWarning($"⚠️ JSON incomplete - doesn't end with }}. Length: {text.Length}");
+                    _logger.LogWarning($"Last 100 chars: {text.Substring(Math.Max(0, text.Length - 100))}");
+
+                    // Spróbuj naprawić - dodaj brakujące nawiasy
+                    var openBraces = text.Count(c => c == '{');
+                    var closeBraces = text.Count(c => c == '}');
+                    var missing = openBraces - closeBraces;
+
+                    if (missing > 0)
+                    {
+                        text += new string('}', missing);
+                        _logger.LogInformation($"✅ Auto-fixed JSON by adding {missing} closing braces");
+                    }
+                }
+            }
+
+            _logger.LogInformation($"📤 Generated text length: {text?.Length ?? 0} chars");
 
             return text ?? "{}";
         }

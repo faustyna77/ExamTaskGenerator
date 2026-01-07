@@ -49,6 +49,17 @@ public class User
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
+    [Column("is_premium")]
+    public bool IsPremium { get; set; } = false;
+
+    [Column("premium_expires_at")]
+    public DateTime? PremiumExpiresAt { get; set; }
+
+    [Column("pdf_downloads_count")]
+    public int PdfDownloadsCount { get; set; } = 0;
+
+    [Column("stripe_customer_id")]
+    public string? StripeCustomerId { get; set; }
 }
 
 /// <summary>

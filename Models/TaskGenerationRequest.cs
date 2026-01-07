@@ -13,6 +13,7 @@ public class TaskGenerationRequest
 
     [Range(1, 10)]
     public int TaskCount { get; set; } = 1;
+    public string TaskType { get; set; } = "closed";
 }
 
 public class TaskGenerationResponse
@@ -30,4 +31,6 @@ public class GeneratedTaskItemDto  // ← NOWA NAZWA!
     public string? CorrectAnswer { get; set; }
     public string? Solution { get; set; }
     public string? Source { get; set; }
+    
+    public int? PointsAvailable { get; set; }
 }

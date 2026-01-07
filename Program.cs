@@ -56,8 +56,10 @@ builder.Services.AddScoped<RAGService>();
 // ? DODAJ:
 builder.Services.AddScoped<PdfImportService>();
 builder.Services.AddScoped<PdfExportService>();
+builder.Services.AddScoped<SubscriptionService>();
+builder.Services.AddScoped<StripeService>();
 
-
+builder.Services.AddScoped<MockExamService>();
 // ============================================
 // 3. JWT AUTHENTICATION - Tokeny
 // ============================================

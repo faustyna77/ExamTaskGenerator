@@ -3,6 +3,7 @@ using System;
 using ExamCreateApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace ExamCreateApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251226175031_AddPremiumField")]
+    partial class AddPremiumField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -115,175 +118,6 @@ namespace ExamCreateApp.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("GeneratedTasks");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.MockExam", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("Id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ExamType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("exam_type");
-
-                    b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("finished_at");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("level");
-
-                    b.Property<int?>("MaxScore")
-                        .HasColumnType("integer")
-                        .HasColumnName("max_score");
-
-                    b.Property<double?>("Percentage")
-                        .HasColumnType("double precision")
-                        .HasColumnName("percentage");
-
-                    b.Property<double?>("Score")
-                        .HasColumnType("double precision")
-                        .HasColumnName("score");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("started_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
-
-                    b.Property<int>("TaskCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("task_count");
-
-                    b.Property<string>("TasksData")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tasks_data");
-
-                    b.Property<int?>("TimeElapsedSeconds")
-                        .HasColumnType("integer")
-                        .HasColumnName("time_elapsed_seconds");
-
-                    b.Property<int>("TimeLimitMinutes")
-                        .HasColumnType("integer")
-                        .HasColumnName("time_limit_minutes");
-
-                    b.Property<string>("UserAnswers")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("user_answers");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MockExams");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.MockExamAnswer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("Id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CorrectAnswer")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("correct_answer");
-
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_correct");
-
-                    b.Property<double>("MaxPoints")
-                        .HasColumnType("double precision")
-                        .HasColumnName("max_points");
-
-                    b.Property<int>("MockExamId")
-                        .HasColumnType("integer")
-                        .HasColumnName("mock_exam_id");
-
-                    b.Property<double>("PointsEarned")
-                        .HasColumnType("double precision")
-                        .HasColumnName("points_earned");
-
-                    b.Property<string>("TaskContent")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("task_content");
-
-                    b.Property<int>("TaskIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("task_index");
-
-                    b.Property<string>("UserAnswer")
-                        .HasColumnType("text")
-                        .HasColumnName("user_answer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MockExamId");
-
-                    b.ToTable("MockExamAnswers");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.Review", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("Id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("comment");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_approved");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer")
-                        .HasColumnName("rating");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("ExamCreateApp.Models.User", b =>
@@ -418,39 +252,6 @@ namespace ExamCreateApp.Migrations
                 });
 
             modelBuilder.Entity("ExamCreateApp.Models.GeneratedTask", b =>
-                {
-                    b.HasOne("ExamCreateApp.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.MockExam", b =>
-                {
-                    b.HasOne("ExamCreateApp.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.MockExamAnswer", b =>
-                {
-                    b.HasOne("ExamCreateApp.Models.MockExam", "MockExam")
-                        .WithMany()
-                        .HasForeignKey("MockExamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MockExam");
-                });
-
-            modelBuilder.Entity("ExamCreateApp.Models.Review", b =>
                 {
                     b.HasOne("ExamCreateApp.Models.User", "User")
                         .WithMany()
